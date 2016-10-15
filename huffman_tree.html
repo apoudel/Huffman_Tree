@@ -1,0 +1,264 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Huffman Tree Demo</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <style >
+
+  </style>
+
+
+  </head>
+  <style type="text/css">
+
+  .link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1px;
+}
+
+</style>
+  <body>
+    <h1>Huffman Tree Demo</h1>
+<div>
+    <span>Text: </span><input type="text" id="inputText" size="100"/> <br />
+    <input type="button" id="startButton" value="Start" onclick="input();"/>
+    <input type="button" id="stepButton" disabled="true" value="Step" onclick="steps();"/>
+</div>
+
+
+
+
+
+    <script type="text/javascript">
+
+
+    var randNum = 0;
+
+    var x = 0;
+    var y = 0;
+
+    var margins = {top: 0, bottom: 0, left:0, right:0};
+
+    var height = 800;
+    var width = 1000;
+
+
+    var currentList = [];
+
+    var tempString;
+    var tempArray = [];
+
+    var input = function(){
+      tempString = document.getElementById("inputText").value;
+      tempString = tempString.toLowerCase();
+      createArray(tempString);
+      document.getElementById("stepButton").disabled = false;
+
+    }
+
+
+    var index;
+    var tempChar;
+
+
+    var steps = function(){
+
+      var first, second, combined;
+      if (tempArray.length >= 2 && randNum != 0){
+
+        first = tempArray[0];
+        second = tempArray[1];
+        tempArray = tempArray.splice(2);
+
+        combined = {text: "", children: [], height: null};
+        combined.text = first.text + second.text;
+        combined.freq = +first.freq + +second.freq;
+        combined.children = [first, second];
+        combined.height = Math.max(+first.height, + second.height) + 1;
+
+        tempArray.push(combined);
+        tempArray.sort(function(a,b){
+          var comparison = parseFloat(a.freq-b.freq);
+          if(comparison === 0){
+            comparison = parseFloat(a.height-b.height);
+            if (comparison === 0){
+              comparison = parseFloat(a.text.charCodeAt(0) - b.text.charCodeAt(0));
+            }
+          }
+          return comparison;
+        });
+      } else{
+        document.getElementById("stepButton").disabled = true;
+      }
+
+      randNum++;
+
+
+
+      displayTree();
+
+    }
+
+    var createArray = function(string){
+      randNum=0;
+      tempArray = [];
+
+      for (var x = 0; x < string.length; x++){
+        tempChar = string.charAt(x);
+        index = contains(tempChar);
+        if (index === -1){
+          tempArray.push({text: tempChar, freq: 1, children: [], height: 0});
+        }
+        else{
+          tempArray[index].freq++;
+        }
+      }
+
+      tempArray.sort(function(a,b){
+        var comparison = parseFloat(a.freq-b.freq);
+        if(comparison === 0){
+          comparison = parseFloat(a.text.charCodeAt(0) - b.text.charCodeAt(0));
+        }
+        return comparison;
+      });
+      steps();
+    }
+
+
+
+    var contains = function(char){
+      for (var x = 0; x < tempArray.length; x++){
+        if (tempArray[x].text === char){
+          return x;
+        }
+      }
+      return -1;
+    }
+
+
+    var svg = d3.select('body')
+                  .append('svg')
+
+
+    var displayArray = [];
+    var linkArray = [];
+
+    var displayTree = function(){
+      var tree = d3.layout.tree()
+        .nodeSize([30,45]);
+        //.size([200,200]);
+
+      displayArray = [];
+
+
+      tempArray.forEach(function(d, i){
+
+        var displayNode = tree.nodes(d);
+
+        displayArray.push(displayNode);
+
+      })
+
+      var largestY = 0;
+      var largestX = 0;
+
+      for(var i=0; i< displayArray.length; i++){
+
+        for (var j = 0; j < displayArray[i].length; j++){
+
+          if (Math.abs(displayArray[i][j].x) > largestX){
+            largestX = Math.abs(displayArray[i][j].x);
+          }
+          if (Math.abs(displayArray[i][j].y) > largestY){
+            largestY = Math.abs(displayArray[i][j].y);
+          }
+
+
+        }
+      }
+
+      var numInRow=displayArray.length;
+      var treeWidth = largestX * 2 + 40;
+      if(treeWidth > width){
+        svg.attr({'width':treeWidth + 20, 'height':height});
+      }
+      else{
+        svg.attr({'width':width, 'height':height});
+      }
+
+      if((treeWidth*8)< width){
+        numInRow = 8;
+      }
+      else if((treeWidth*7)< width){
+        numInRow = 7;
+      }
+      else if((treeWidth*6)< width){
+        numInRow = 6;
+      }
+      else if((treeWidth*5)< width){
+        numInRow = 5;
+      }
+      else if((treeWidth*4)< width){
+        numInRow = 4;
+      }
+      else if((treeWidth*3)< width){
+        numInRow = 3;
+      }
+      else if((treeWidth*2)< width){
+        numInRow = 2;
+      }
+      else{
+        numInRow = 1;
+      }
+
+
+      var svgHeight = ((displayArray.length)/numInRow)*(+largestY + 40)+80;
+      if (svgHeight > height){
+        svg.attr({'height':svgHeight});
+      }
+
+
+      svg.selectAll("g").remove();
+
+      var dummyg = svg.append("g")
+                      .attr("transform", "translate(" + (largestX + 40) + "," + 0 + ")")
+      var currentRow;
+      displayArray.forEach(function(d, i){
+        currentRow =(Math.floor(i/numInRow));
+        var gRegion = dummyg.append("g")
+          .attr("transform", "translate(" + i%numInRow * (largestX * 2 + 40) + "," + (Math.floor(i/numInRow) * (+largestY + 40) + 80) + ")")
+
+
+      var link = gRegion.selectAll("path")
+                  .data(tree.links(d))
+                  .enter()
+                  .append("path", "g")
+                  .attr("class", "link")
+                  .attr("d", d3.svg.diagonal());
+
+        var text =   gRegion.selectAll("text")
+          .data(d);
+
+        text.exit().remove();
+
+        text.enter()
+            .append("text")
+            .attr("x", function(d){return d.x})
+            .attr("y", function(d){return d.y})
+            .text(function(d){return d.text})
+            .style("text-anchor", "middle");
+
+      })
+
+
+
+    };
+
+
+
+    </script>
+  </body>
+</html>
